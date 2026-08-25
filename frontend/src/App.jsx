@@ -17,7 +17,7 @@ const MODEL = {
   category: { accessories: -0.1317, apparel: 0.836, beauty: -0.4083, electronics: 0.1538, footwear: 0.7729, grocery: -1.4474, home: -0.1788 },
   payment: { COD: 0.3581, UPI: -0.2372, prepaid_card: -0.3242, wallet: -0.2002 },
   bin: { is_weekend_order: -0.0628, size_variant: 0.2554, coupon_used: -0.0713 },
-  threshold: 0.4,
+  threshold : 0.5,
 };
 
 const METRICS = {
@@ -111,12 +111,64 @@ export default function App() {
 
   const update = (k, v) => setOrder((o) => ({ ...o, [k]: v }));
 
-  const runScore = () => {
-    const proba = scoreOrder(order);
-    const flagged = proba >= MODEL.threshold;
-    setScored({ proba, flagged, factors: factorsFor(order, proba) });
+ const runScore = async () => {
+  try {
+    const response = await fetch(
+      "https://manifest-return-risk.onrender.com/score",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          category: order.category,
+          price: Number(order.price),
+          discount_pct: Number(order.discount_pct),
+          payment_method: order.payment_method,
+          customer_order_count: Number(order.customer_order_count),
+          customer_return_rate_hist:
+            order.customer_return_rate_hist === ""
+              ? null
+              : Number(order.customer_return_rate_hist),
+          days_since_signup: Number(order.days_since_signup),
+          delivery_days: Number(order.delivery_days),
+          is_weekend_order: order.is_weekend_order,
+          size_variant: order.size_variant,
+          coupon_used: order.coupon_used,
+          review_rating_at_purchase: Number(
+            order.review_rating_at_purchase
+          ),
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Backend request failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    setScored({
+      proba: result.risk_score,
+      flagged: result.flagged,
+      threshold: result.threshold_used,
+      factors: result.top_factors.map((factor) => ({
+        label: factor.factor,
+        dir:
+          factor.effect === "increases risk"
+            ? "up"
+            : factor.effect === "decreases risk"
+            ? "down"
+            : "flat",
+      })),
+    });
+
     setStampKey((k) => k + 1);
-  };
+  } catch (error) {
+    console.error(error);
+    alert("Could not connect to the risk scoring server.");
+  }
+};
 
   const prPoints = useMemo(() => PR_CURVE, []);
 
@@ -252,7 +304,7 @@ export default function App() {
                 {(scored.proba * 100).toFixed(1)}<span style={{ fontSize: 20 }}>%</span>
               </div>
               <div style={{ fontSize: 12, color: "#5B6470", marginTop: 4, marginBottom: 20 }}>
-                estimated return probability &middot; threshold {MODEL.threshold}
+                estimated return probability &middot; threshold {scored.threshold}
               </div>
 
               <div style={{ width: "100%", maxWidth: 320 }}>
