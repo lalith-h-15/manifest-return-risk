@@ -1,0 +1,42 @@
+# Dependencies
+**/node_modules/
+
+# Environment variables / secrets
+.env
+.env.local
+.env.development
+.env.production
+
+# Build output
+**/dist/
+**/build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ML generated files
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.pt
+*.pth
