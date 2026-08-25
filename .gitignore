@@ -36,7 +36,6 @@ venv/
 # ML generated files
 *.pkl
 *.pickle
-*.joblib
 *.h5
 *.pt
 *.pth
